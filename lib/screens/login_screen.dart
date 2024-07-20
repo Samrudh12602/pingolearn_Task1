@@ -16,7 +16,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  void _showError(String message) {
+  String? _emailError;
+  String? _passwordError;
+
+  void _showSnackbarError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -25,10 +28,29 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  void _validateAndLogin() async {
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+    });
+
+    if (_formKey.currentState!.validate()) {
+      try {
+        final email = _emailController.text;
+        final password = _passwordController.text;
+        final authService = Provider.of<AuthService>(context, listen: false);
+        await authService.signInWithEmail(email, password);
+      } catch (e) {
+        _showSnackbarError(e.toString());
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(
           'Comments',
           style: GoogleFonts.poppins(
@@ -58,12 +80,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     filled: true,
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Colors.white,width: 1),
+                      borderSide: BorderSide(color: Colors.white, width: 1),
                     ),
+                    errorText: _emailError,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
+                    } else if (!_isValidEmail(value)) {
+                      return 'Please enter a valid email';
                     }
                     return null;
                   },
@@ -77,33 +102,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     filled: true,
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Colors.white,width: 1),
+                      borderSide: BorderSide(color: Colors.white, width: 1),
                     ),
+                    errorText: _passwordError,
                   ),
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password';
+                    } else if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
                     }
                     return null;
                   },
                 ),
                 SizedBox(height: 250),
                 ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      try {
-                        final email = _emailController.text;
-                        final password = _passwordController.text;
-                        final authService = Provider.of<AuthService>(context, listen: false);
-                        await authService.signInWithEmail(email, password);
-                      } catch (e) {
-                        _showError(e.toString());
-                      }
-                    }
-                  },
+                  onPressed: _validateAndLogin,
                   style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 16,horizontal: 80),
+                    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 80),
                     backgroundColor: Color(0xFF0C54BE),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
@@ -115,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       textStyle: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
-                        fontSize: 18
+                        fontSize: 18,
                       ),
                     ),
                   ),
@@ -153,7 +170,13 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+  bool _isValidEmail(String email) {
+    final emailRegExp = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    return emailRegExp.hasMatch(email);
+  }
 }
+
 
 class SignUpScreen extends StatefulWidget {
   @override

@@ -28,9 +28,24 @@ class AuthService {
         });
         print('User document created: ${user.uid}');
       }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      switch (e.code) {
+        case 'email-already-in-use':
+          errorMessage = 'The email address is already in use by another account.';
+          break;
+        case 'weak-password':
+          errorMessage = 'The password provided is too weak.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'The email address is not valid.';
+          break;
+        default:
+          errorMessage = 'An undefined Error happened.';
+      }
+      throw FirebaseAuthException(message: errorMessage, code: e.code);
     } catch (e) {
-      print('Error signing up: $e');
-      // Handle the error appropriately in your app
+      throw Exception('An error occurred while signing up.');
     }
   }
 
